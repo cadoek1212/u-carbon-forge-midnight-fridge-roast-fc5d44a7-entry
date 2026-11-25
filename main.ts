@@ -10,6 +10,37 @@ import { join } from "node:path";
 const LINE =
   "My fridge locks itself after midnight to 'protect my health' — rich, coming from the box that keeps my ice cream at perfect scooping temperature.";
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), LINE, "utf8");
+// Competition rules: exactly one line, 1–200 characters, real content.
+function validateLine(line: string): void {
+  if (typeof line !== "string") {
+    throw new Error("entry line must be a string");
+  }
+  if (line.trim().length === 0) {
+    throw new Error("entry line must not be blank or only whitespace");
+  }
+  if (line.includes("\n") || line.includes("\r")) {
+    throw new Error("entry must be a single line");
+  }
+  if (line.length < 1 || line.length > 200) {
+    throw new Error(`entry line must be 1-200 characters, got ${line.length}`);
+  }
+  // UTF-8 round-trip: the written bytes must decode back to the same line.
+  if (Buffer.from(line, "utf8").toString("utf8") !== line) {
+    throw new Error("entry line is not valid UTF-8 text");
+  }
+}
+
+function main(): void {
+  validateLine(LINE);
+
+  const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, "entry.txt"), LINE, "utf8");
+}
+
+try {
+  main();
+} catch (error) {
+  console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}
